@@ -105,6 +105,10 @@ Interactive docs: `http://127.0.0.1:8000/docs`
 - **Vector store**: Chroma (persistent on disk)  
 - **LLM**: Groq — `llama-3.1-8b-instant`
 
+##
+lsof -i :8000
+kill -9 pid
+
 ## License
 
 Add a `LICENSE` file in the repository if you want to specify terms for reuse.

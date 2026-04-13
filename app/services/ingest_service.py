@@ -1,8 +1,6 @@
 
 # this service will run when we trigger the ingest_data.py
 
-from this import d
-
 from chromadb import Metadata
 from app.utils.loaders import load_documents
 from app.utils.chunking import chunk_documents

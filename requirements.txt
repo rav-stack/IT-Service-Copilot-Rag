@@ -26,3 +26,6 @@ transformers==4.44.2
 
 # Critical fix
 numpy<2
+
+# HTTP client compatibility (required by groq==0.9.0)
+httpx==0.27.2

@@ -41,9 +41,11 @@ Enterprise IT support assistant built with **Retrieval-Augmented Generation (RAG
 2. **Create a virtual environment and install dependencies**
 
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate   # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
+   python3.11 -m venv .venv
+   source .venv/bin/activate
+   python -V
+   which python #should point to .venv
+   python -m pip install -r requirements.txt
    ```
 
 3. **Environment variables**
@@ -79,7 +81,9 @@ uvicorn app.main:app --reload
 Default URL: `http://127.0.0.1:8000`
 
 ### Example request
-
+   Swagger UI:
+   http://127.0.0.1:8000/docs
+   
 ```bash
 curl -s -X POST "http://127.0.0.1:8000/ask" \
   -H "Content-Type: application/json" \

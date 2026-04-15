@@ -14,13 +14,20 @@ class QueryRequest(BaseModel):
 def ask_question(request: QueryRequest):
     docs = retrieve_documents(request.query)
 
-    relevant_docs = "\n".join([obj.page_content for obj in docs])
-    answer = generate_answer(request.query,relevant_docs)
+    #context = "\n".join([doc.page_content for doc in docs]) 
+    # #LLM hallucinated because source names because metadata was not propagated into the prompt.
+    # the below function passess source name as well as the content of the chunk to the LLM
+
+    context = "\n\n".join([f"Source : {doc.metadata.get('source')}\nContent:{doc.page_content}" for doc in docs])
+
+    sources = list(set([doc.metadata.get("source","unknown") for doc in docs]))
+    answer = generate_answer(request.query,context)
     
     return {
         "question" : request.query,
-        "retrieved_documents" : relevant_docs,
-        "answer": answer
+        "answer": answer,
+        "sources" : sources
+        
     }
 
 #uvicorn app.main:app --reload

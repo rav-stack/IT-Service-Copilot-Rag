@@ -7,11 +7,17 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def generate_answer(query, context):
     prompt = f"""
-You are an enterprise support assistant.
+You are an enterprise IT support assistant.
 
-Answer ONLY using the context below.
-If the answer is not present, say "Insufficient data to process an answer".
+Answer ONLY using the provided context.
+If the answer is not present, say: "Insufficient data to process an answer".
 
+Also ensure the answer is concise and accurate.
+While answering, you MUST cite the exact source file name from the context.
+Use this format: [source_file_name]
+
+Do NOT invent or modify source names.
+Only use sources explicitly provided in the context.
 Context:
 {context}
 

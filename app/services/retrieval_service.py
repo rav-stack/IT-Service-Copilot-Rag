@@ -2,7 +2,7 @@ from app.services.vectorstore_service import get_vectorstore
 from app.services.llm_service import client
 
 
-def retrieve_documents(query, k=5):
+def retrieve_documents(query, k=8):
     vectorstore = get_vectorstore()
     
     # Step 1: retrieve more candidates (increase recall)
@@ -57,10 +57,10 @@ def retrieve_documents(query, k=5):
         if "YES" in verdict:
             final_docs.append(doc)
 
-    for i in final_docs[:3]:
-        source = i.metadata.get("source","unknown")
-        preview= i.page_content[:100].replace("\n", " ")
-        print(f"\n source : {source}  content : {preview}")
+    # for i in final_docs[:3]:
+    #     source = i.metadata.get("source","unknown")
+    #     preview= i.page_content[:100].replace("\n", " ")
+    #     print(f"\n source : {source}  content : {preview}")
     
     return final_docs
 

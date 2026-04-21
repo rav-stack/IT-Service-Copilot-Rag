@@ -1,118 +1,94 @@
 # IT Service Copilot (RAG)
-
-Enterprise IT support assistant built with **Retrieval-Augmented Generation (RAG)**. Plain-text knowledge files are chunked, embedded with a Hugging Face model, stored in **Chroma**, and answers are generated with **Groq** (Llama 3.1) using only retrieved context.
-
-**Remote:** [github.com/rav-stack/IT-Service-Copilot-rag](https://github.com/rav-stack/IT-Service-Copilot-rag)
-
+Enterprise IT support assistant built with Retrieval-Augmented Generation (RAG).  
+Knowledge files are chunked, embedded using Hugging Face, stored in Chroma, and answered through Groq Llama using retrieved context.
+Remote: [https://github.com/rav-stack/IT-Service-Copilot-rag](https://github.com/rav-stack/IT-Service-Copilot-rag)
 ## Features
-
-- **FastAPI** `POST /ask` endpoint: accepts a question, retrieves top-k similar chunks, returns the model answer plus the retrieved text used as context.
-- **Grounded answers**: The LLM is instructed to answer only from context; if nothing matches, it responds with *"Insufficient data to process an answer"*.
-- **Configurable embeddings and vector DB** via environment variables (see below).
-
-## Project layout
-
-| Path | Role |
-|------|------|
+- FastAPI endpoint: `POST /ask`
+- Retrieval pipeline with:
+  - Chroma similarity search
+  - heuristic scoring
+  - LLM pointwise reranking (`YES`/`NO`)
+- Grounded answer generation:
+  - instructed to answer only from provided context
+  - returns fallback: `"Insufficient data to process an answer"` when context is insufficient
+- Source-aware responses:
+  - response includes source file names used for the answer
+## Project Structure
+| Path | Purpose |
+|------|---------|
 | `app/main.py` | FastAPI app and `/ask` route |
-| `app/services/retrieval_service.py` | Similarity search over Chroma |
-| `app/services/vectorstore_service.py` | Hugging Face embeddings + Chroma client |
-| `app/services/ingest_service.py` | Load → chunk → index pipeline |
-| `app/services/llm_service.py` | Groq chat completion |
-| `app/utils/loaders.py` | Reads all `.txt` files from a folder |
-| `app/utils/chunking.py` | `RecursiveCharacterTextSplitter` (500 / 50 overlap) |
-| `scripts/ingest_data.py` | CLI entrypoint for ingestion |
-| `data/raw/` | Example knowledge files (policies, troubleshooting notes) |
-
-## Prerequisites
-
+| `app/services/ingest_service.py` | Load → chunk → embed → store pipeline |
+| `app/services/retrieval_service.py` | Retrieve + rerank relevant chunks |
+| `app/services/llm_service.py` | Groq answer generation |
+| `app/services/vectorstore_service.py` | Chroma + embedding initialization |
+| `app/utils/loaders.py` | Load `.txt` files from `data/raw/` |
+| `app/utils/chunking.py` | Custom chunking logic |
+| `scripts/ingest_data.py` | Ingestion entrypoint |
+| `data/raw/` | Knowledge base text files |
+## Tech Stack
 - Python 3.10+ (3.11 recommended)
-- A [Groq](https://console.groq.com/) API key
-
+- FastAPI + Uvicorn
+- LangChain ecosystem:
+  - `langchain_chroma`
+  - `langchain_huggingface`
+  - `langchain_text_splitters`
+- Chroma (persistent vector DB)
+- Groq (`llama-3.1-8b-instant`)
+## Prerequisites
+- Python 3.10+
+- Groq API key from [https://console.groq.com/](https://console.groq.com/)
 ## Setup
-
-1. **Clone and enter the project**
-
-   ```bash
-   git clone https://github.com/rav-stack/IT-Service-Copilot-rag.git
-   cd IT-Service-Copilot-rag
-   ```
-
-2. **Create a virtual environment and install dependencies**
-
-   ```bash
-   python3.11 -m venv .venv
-   source .venv/bin/activate
-   python -V
-   which python #should point to .venv
-   python -m pip install -r requirements.txt
-   ```
-
-3. **Environment variables**
-
-   Create a `.env` file in the project root (same folder as `requirements.txt`):
-
-   ```env
-   GROQ_API_KEY=your_groq_api_key
-   EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-   CHROMA_DB_DIR=./chroma_db
-   ```
-
-   - **`GROQ_API_KEY`**: Required for `/ask`.
-   - **`EMBEDDING_MODEL`**: Any model name supported by [HuggingFaceEmbeddings](https://python.langchain.com/docs/integrations/text_embedding/huggingface_hub); the default above is small and fast. The first run may download model weights.
-   - **`CHROMA_DB_DIR`**: Persistent directory for the Chroma store (created on first ingest).
-
-## Ingest knowledge
-
-From the project root, with the virtual environment active:
-
+### 1) Clone repository
 ```bash
+git clone https://github.com/rav-stack/IT-Service-Copilot-rag.git
+cd IT-Service-Copilot-rag
+2) Create and activate virtual environment
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+3) Configure environment variables
+Create .env in project root:
+
+GROQ_API_KEY=your_groq_api_key
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+CHROMA_DB_DIR=./chroma_db
+Variable reference:
+
+GROQ_API_KEY: required for LLM calls
+EMBEDDING_MODEL: embedding model name for HuggingFace
+CHROMA_DB_DIR: folder for persistent Chroma storage
+Ingest Knowledge Base
+Place .txt files in data/raw/, then run:
+
 python -m scripts.ingest_data
-```
+This loads, chunks, and indexes data into Chroma.
 
-This reads every file in `data/raw/`, splits into chunks, and upserts into Chroma under `CHROMA_DB_DIR`. Run again after adding or changing files in `data/raw/`.
-
-## Run the API
-
-```bash
+Run API
 uvicorn app.main:app --reload
-```
+App URL: http://127.0.0.1:8000
+Swagger docs: http://127.0.0.1:8000/docs
 
-Default URL: `http://127.0.0.1:8000`
-
-### Example request
-   Swagger UI:
-   http://127.0.0.1:8000/docs
-   
-```bash
-curl -s -X POST "http://127.0.0.1:8000/ask" \
+API Usage
+Request
+curl -X POST "http://127.0.0.1:8000/ask" \
   -H "Content-Type: application/json" \
-  -d '{"query": "How do I request VPN access?"}'
-```
-
-Response shape:
-
-```json
+  -d '{"query":"How do I request VPN access?"}'
+Response (current implementation)
 {
-  "question": "...",
-  "retrieved_documents": "...",
-  "answer": "..."
+  "question": "How do I request VPN access?",
+  "answer": "You can request VPN access by ... [vpn_troubleshooting.txt]",
+  "sources": ["vpn_troubleshooting.txt"]
 }
-```
+.gitignore (Important)
+To avoid pushing local virtual environment binaries and large files to GitHub, ensure .gitignore includes:
 
-Interactive docs: `http://127.0.0.1:8000/docs`
+#evaluation script
+pytho-m scripts.evaluate
 
-## Stack
-
-- **API**: FastAPI, Uvicorn, Pydantic  
-- **RAG**: LangChain (text splitters, Chroma integration, Hugging Face embeddings)  
-- **Vector store**: Chroma (persistent on disk)  
-- **LLM**: Groq — `llama-3.1-8b-instant`
-
-##
-lsof -i :8000
-kill -9 pid
-
-## License
-
-Add a `LICENSE` file in the repository if you want to specify terms for reuse.
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+chroma_db/
+.env
